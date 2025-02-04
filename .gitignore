@@ -11,6 +11,7 @@ packages/plugin-buttplug/intiface-engine
 
 .idea
 .DS_Store
+.vscode
 
 dist/
 # Allow models directory but ignore model files

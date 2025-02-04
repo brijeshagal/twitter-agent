@@ -61,7 +61,8 @@ export const TwitterClientInterface: Client = {
         await manager.client.init();
 
         // Start the posting loop
-        await manager.post.start();
+        // @dev we don't need a posting loop
+        // await manager.post.start();
 
         // Start the search logic if it exists
         if (manager.search) {
