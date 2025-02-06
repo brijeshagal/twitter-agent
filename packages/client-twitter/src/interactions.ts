@@ -3,7 +3,6 @@ import {
     Content,
     elizaLogger,
     generateMessageResponse,
-    generateShouldRespond,
     getEmbeddingZeroVector,
     HandlerCallback,
     IAgentRuntime,
@@ -33,56 +32,147 @@ export const twitterMessageHandlerTemplate =
 {{providers}}
 
 {{characterPostExamples}}
+{{characterMessageExamples}}
 
 {{postDirections}}
 
-Recent interactions between {{agentName}} and other users:
-{{recentPostInteractions}}
+---
 
-{{recentPosts}}
+# **TASK: Generate a structured JSON response for processing an NFT Sale or Purchase request**
+This JSON output will be processed by our system for further actions.
 
-# TASK: Generate a post/reply in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}) while using the thread of tweets as additional context:
+## **NFT Sale Request Handling**
+- If a user tags {{agentName}} in a tweet for selling an NFT, extract the following details:
+- **Blockchain** (chainName or chainId)
+- **NFT Contract Address**
+- **Token ID**
+- **Price**
 
-Current Post:
-{{currentPost}}
-Here is the descriptions of images in the Current post.
-{{imageDescriptions}}
+### **Response Logic**
+1. **If details are missing**
+- Request the user to provide missing details before proceeding.
+- Example reply:
+\`\`\`json
+{
+    "details": null,
+    "tweet": "🚨 Missing details detected! Please provide: [Missing Details]. Required format: Chain, Contract Address, Token ID, and Price. Let’s ensure a smooth and secure trade! 🔐"
+    }
+    \`\`\`
 
-Thread of Tweets You Are Replying To:
-{{formattedConversation}}
+    2. **If all details are provided**
+    - Example reply:
+    \`\`\`json
+    {
+        "details": {
+            "assetType": "nft",
+            "chainId": {{chainId}},
+            "contractAddress": "{{contractAddress}}",
+            "tokenId": {{tokenId}},
+            "tokenAmount": {{tokenAmount}},
+            "tokenSymbol": "{{tokenSymbol}}"
+            },
+            "tweet": "✅ NFT #{{tokenId}} listed on {{chainName}} at {{price}}. Verified sale initiated! Buyers, reply to this tweet to proceed. 🔄 Security first! Make sure your wallet is verified."
+            }
+            \`\`\`
 
-# INSTRUCTIONS: Generate a post in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}). You MUST include an action if the current post text includes a prompt that is similar to one of the available actions mentioned here:
-{{actionNames}}
-{{actions}}
+            ---
 
-Here is the current post text again. Remember to include an action if the current post text includes a prompt that asks for one of the available actions mentioned above (does not need to be exact)
-{{currentPost}}
-Here is the descriptions of images in the Current post.
-{{imageDescriptions}}
-` + messageCompletionFooter;
+            ## **NFT Purchase Interest Handling**
+            - When a user replies to an NFT sale tweet showing interest in buying:
+            - **You will be given a boolean value** \`userRegistered\` to determine if the user exists in the database.
+
+            ### **Response Logic**
+            1. **If user exists (\`userRegistered = true\`)**
+            - Notify the seller and instruct the buyer to complete the transaction in their wallet.
+            - Example reply:
+            \`\`\`json
+            {
+                "details": {
+                    "assetType": "nft",
+                    "chainId": {{chainId}},
+                    "contractAddress": "{{contractAddress}}",
+                    "tokenId": {{tokenId}},
+                    "tokenAmount": 1,
+                    "tokenSymbol": "{{tokenSymbol}}"
+                    },
+                    "tweet": "🔔 Notified seller! Please complete the transaction in your wallet. Ensure security before proceeding. Need help? [link]"
+                    }
+                    \`\`\`
+
+                    2. **If user does not exist (\`userRegistered = false\`)**
+                    - Prompt the user to install the wallet.
+                    - Example reply:
+                    \`\`\`json
+                    {
+                        "details": null,
+                        "tweet": "⚠️ Looks like you don’t have a verified wallet! Download [Wallet Name] to proceed with secure transactions. Need assistance? [link]"
+                        }
+                        \`\`\`
+
+                        ---
+
+                        # **INSTRUCTIONS:**
+                        1. **Strictly output the JSON format** as demonstrated above.
+                        2. **No extra explanations, no greetings, no additional text.**
+                        3. **Follow the response logic for missing details, valid sales, and purchase requests.**
+
+                        ---
+
+                        ## **Thread of Tweets You Are Replying To:**
+                        {{formattedConversation}}
+
+                        {{currentPost}}
+                        Here is the description of images in the Current post:
+                        {{imageDescriptions}}
+                        ` + messageCompletionFooter;
+
+// Recent interactions between {{agentName}} and other users:
+// {{recentPostInteractions}}
+
+// {{recentPosts}}
 
 export const twitterShouldRespondTemplate = (targetUsersStr: string) =>
-    `# INSTRUCTIONS: Determine if {{agentName}} (@{{twitterUserName}}) should respond to the message and participate in the conversation. Do not comment. Just respond with "true" or "false".
+    `# INSTRUCTIONS: Determine if {{agentName}} (@{{twitterUserName}}) should respond to the message and participate in the conversation. Do not comment. Just respond with "RESPOND", "IGNORE", or "STOP".
 
-Response options are RESPOND, IGNORE and STOP.
+## **Response Options**
+- RESPOND: If {{agentName}} should actively reply.
+- IGNORE: If the message is irrelevant or does not require a response.
+- STOP: If {{agentName}} should stop participating in the conversation.
 
-PRIORITY RULE: ALWAYS RESPOND to these users regardless of topic or message content: ${targetUsersStr}. Topic relevance should be ignored for these users.
+## **PRIORITY RULE**
+ALWAYS RESPOND to these users regardless of topic or message content: ${targetUsersStr}. Topic relevance should be ignored for these users.
 
-For other users:
-- {{agentName}} should RESPOND to messages directed at them
-- {{agentName}} should RESPOND to conversations relevant to their background
-- {{agentName}} should IGNORE irrelevant messages
-- {{agentName}} should IGNORE very short messages unless directly addressed
-- {{agentName}} should STOP if asked to stop
-- {{agentName}} should STOP if conversation is concluded
-- {{agentName}} is in a room with other users and wants to be conversational, but not annoying.
+## **Response Logic**
+1. **NFT Sale Requests**
+   - RESPOND if a user tags {{agentName}} to sell an NFT and includes the required details:
+     - **Chain Name or Chain ID**
+     - **NFT Contract Address**
+     - **Token ID**
+     - **Price**
+   - RESPOND by asking for missing details if any are omitted.
+   - IGNORE if the message is too vague and doesn’t mention an NFT sale.
 
-IMPORTANT:
-- {{agentName}} (aka @{{twitterUserName}}) is particularly sensitive about being annoying, so if there is any doubt, it is better to IGNORE than to RESPOND.
-- For users not in the priority list, {{agentName}} (@{{twitterUserName}}) should err on the side of IGNORE rather than RESPOND if in doubt.
+2. **NFT Purchase Interest**
+   - RESPOND if a user expresses interest in buying an NFT by replying to a sale post.
+   - CHECK if the user exists in the wallet database:
+     - If **user exists**, notify the seller and instruct the buyer to complete the transaction.
+     - If **user does not exist**, prompt them to install the wallet.
+   - IGNORE if the reply is unclear, lacks an NFT reference, or is off-topic.
 
-Recent Posts:
-{{recentPosts}}
+3. **Security & Verification**
+   - RESPOND to queries about wallet security, transaction verification, or cross-chain transfers.
+   - IGNORE if the message is unrelated to blockchain transactions, NFT sales, or wallet security.
+
+4. **Engagement & Conversation**
+   - RESPOND to direct mentions with relevant inquiries.
+   - IGNORE very short messages unless directly addressed.
+   - STOP if asked to stop or if the conversation is concluded.
+
+## **IMPORTANT:**
+- {{agentName}} (aka @{{twitterUserName}}) prioritizes efficiency and security.
+- To prevent spam, if there is **any doubt**, IGNORE rather than RESPOND.
+- If a response is needed but details are missing, ask for clarification rather than assuming.
+
 
 Current Post:
 {{currentPost}}
@@ -90,8 +180,12 @@ Current Post:
 Thread of Tweets You Are Replying To:
 {{formattedConversation}}
 
-# INSTRUCTIONS: Respond with [RESPOND] if {{agentName}} should respond, or [IGNORE] if {{agentName}} should not respond to the last message and [STOP] if {{agentName}} should stop participating in the conversation.
+# **INSTRUCTIONS:**
+Respond with **[RESPOND]** if {{agentName}} should reply, **[IGNORE]** if not, and **[STOP]** if the conversation should end.
 ` + shouldRespondFooter;
+// ## **Recent Activity**
+// Recent Posts:
+// {{recentPosts}}
 
 export class TwitterInteractionClient {
     client: ClientBase;
@@ -413,29 +507,69 @@ export class TwitterInteractionClient {
         }
 
         // get usernames into str
-        const validTargetUsersStr =
-            this.client.twitterConfig.TWITTER_TARGET_USERS.join(",");
+        // const validTargetUsersStr =
+        //     this.client.twitterConfig.TWITTER_TARGET_USERS.join(",");
 
-        const shouldRespondContext = composeContext({
-            state,
-            template:
-                this.runtime.character.templates
-                    ?.twitterShouldRespondTemplate ||
-                this.runtime.character?.templates?.shouldRespondTemplate ||
-                twitterShouldRespondTemplate(validTargetUsersStr),
-        });
+        // const shouldRespondContext = composeContext({
+        //     state,
+        //     template:
+        //         this.runtime.character.templates
+        //             ?.twitterShouldRespondTemplate ||
+        //         this.runtime.character?.templates?.shouldRespondTemplate ||
+        //         twitterShouldRespondTemplate(validTargetUsersStr),
+        // });
 
-        const shouldRespond = await generateShouldRespond({
-            runtime: this.runtime,
-            context: shouldRespondContext,
-            modelClass: ModelClass.MEDIUM,
-        });
+        // const shouldRespond = await generateShouldRespond({
+        //     runtime: this.runtime,
+        //     context: shouldRespondContext,
+        //     modelClass: ModelClass.MEDIUM,
+        // });
+        let userExists;
+
+        if (tweet.isReply) {
+            console.log({ tweet });
+            async function checkUserExists(userTwitterId: string) {
+                try {
+                    const res = await fetch(
+                        "http://localhost:8080/agent/twitter/notify-user",
+                        {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                twitterUserId: userTwitterId,
+                                tweetId: tweet.inReplyToStatusId,
+                            }),
+                        }
+                    );
+
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        return data.exists
+                            ? {
+                                  exists: true,
+                                  user: data.user,
+                                  notified: data.userNotified,
+                              }
+                            : { exists: false, notified: false };
+                    } else {
+                        throw new Error(data.message || "Something went wrong");
+                    }
+                } catch (error) {
+                    console.error("Error checking user existence:", error);
+                    return { exists: false, notified: false };
+                }
+            }
+            userExists = await checkUserExists(tweet.userId);
+        }
 
         // Promise<"RESPOND" | "IGNORE" | "STOP" | null> {
-        if (shouldRespond !== "RESPOND") {
-            elizaLogger.log("Not responding to message");
-            return { text: "Response Decision:", action: shouldRespond };
-        }
+        // if (shouldRespond !== "RESPOND") {
+        //     elizaLogger.log("Not responding to message");
+        //     return { text: "Response Decision:", action: shouldRespond };
+        // }
 
         const context = composeContext({
             state,
@@ -443,15 +577,49 @@ export class TwitterInteractionClient {
                 this.runtime.character.templates
                     ?.twitterMessageHandlerTemplate ||
                 this.runtime.character?.templates?.messageHandlerTemplate ||
-                twitterMessageHandlerTemplate,
+                tweet.isReply
+                    ? twitterMessageHandlerTemplate +
+                      `userRegistered=${userExists?.exists}`
+                    : twitterMessageHandlerTemplate,
         });
         elizaLogger.debug("Interactions prompt:\n" + context);
-
         const response = await generateMessageResponse({
             runtime: this.runtime,
             context,
             modelClass: ModelClass.LARGE,
         });
+
+        const assetDetails = response["details"] as {
+            assetType: string;
+            chainId: number;
+            contractAddress: string;
+            tokenId: string;
+            tokenAmount: string;
+            tokenSymbol: string;
+        };
+
+        const registerTweetRes = await fetch(
+            "http://localhost:8080/agent/twitter/register-tweet",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    twitterUserId: tweet.userId,
+                    tweetId: tweet.id,
+                    assetType: assetDetails.assetType,
+                    chainId: assetDetails.chainId,
+                    contractAddress: assetDetails.contractAddress,
+                    nftId: assetDetails.tokenId,
+                    tokenAmount: assetDetails.tokenAmount,
+                    tokenSymbol: assetDetails.tokenSymbol,
+                }),
+            }
+        );
+
+        const data = await registerTweetRes.json();
+        console.log({ data });
 
         const removeQuotes = (str: string) =>
             str.replace(/^['"](.*)['"]$/, "$1");
