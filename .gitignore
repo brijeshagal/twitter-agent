@@ -9,8 +9,6 @@ concatenated-output.ts
 embedding-cache.json
 packages/plugin-buttplug/intiface-engine
 
-Dockerfile
-
 .idea
 .DS_Store
 .vscode
@@ -43,7 +41,7 @@ timeline_cache.json
 
 *.sqlite
 
-characters/
+# characters/
 
 packages/core/src/providers/cache
 packages/core/src/providers/cache/*
