@@ -28,12 +28,12 @@ import {
     IDatabaseCacheAdapter,
     ModelProviderName,
     settings,
+    MessageExample,
     stringToUuid,
     validateCharacterConfig,
 } from "@elizaos/core";
 import { zgPlugin } from "@elizaos/plugin-0g";
 import { PrimusAdapter } from "@elizaos/plugin-primus";
-import { mainCharacter } from "../mainCharacter";
 
 import { bootstrapPlugin } from "@elizaos/plugin-bootstrap";
 import createGoatPlugin from "@elizaos/plugin-goat";
@@ -101,8 +101,18 @@ import path from "path";
 import { fileURLToPath } from "url";
 import yargs from "yargs";
 
+import walletGuard from "../../characters/walletguard.character.json" with { type: "json" };
+
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
+
+const mainCharacter: Character = {
+    ...walletGuard,
+    clients: [Clients.TWITTER],
+    modelProvider: ModelProviderName.OPENAI,
+    messageExamples:
+        walletGuard.messageExamples as unknown as MessageExample[][],
+};
 
 export const wait = (minTime: number = 1000, maxTime: number = 3000) => {
     const waitTime =
