@@ -95,7 +95,7 @@ This JSON output will be processed by our system for further actions.
                     "tokenAmount": 1,
                     "tokenSymbol": "{{tokenSymbol}}"
                     },
-                    "tweet": "🔔 Notified seller! Please complete the transaction in your wallet. Ensure security before proceeding. Need help? [link]"
+                    "tweet": "🔔 Notified! Please complete the transaction in your wallet."
                     }
                     \`\`\`
 
@@ -531,7 +531,7 @@ export class TwitterInteractionClient {
             async function checkUserExists(userTwitterId: string) {
                 try {
                     const res = await fetch(
-                        "http://localhost:8080/agent/twitter/notify-user",
+                        `${process.env.BACKEND_SERVER}/agent/twitter/notify-user`,
                         {
                             method: "POST",
                             headers: {
@@ -599,7 +599,7 @@ export class TwitterInteractionClient {
         };
 
         const registerTweetRes = await fetch(
-            "http://localhost:8080/agent/twitter/register-tweet",
+            `${process.env.BACKEND_SERVER}/agent/twitter/register-tweet`,
             {
                 method: "POST",
                 headers: {

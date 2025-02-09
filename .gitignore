@@ -9,6 +9,8 @@ concatenated-output.ts
 embedding-cache.json
 packages/plugin-buttplug/intiface-engine
 
+Dockerfile
+
 .idea
 .DS_Store
 .vscode
